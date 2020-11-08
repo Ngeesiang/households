@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { PersonService } from './person.service';
 import { Person } from 'src/entity/person.entity';
 
@@ -10,6 +10,12 @@ export class PersonController {
     @Get()
     findAllPersons(): Promise<Person[]> {
       return this.personsService.getAll()
+    }
+
+    @Get('/:id')
+    findOnePerson(
+      @Param('id') id: number): Promise<Person> {
+      return this.personsService.findOne(id)
     }
 
 }

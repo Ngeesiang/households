@@ -13,4 +13,9 @@ export class HouseholdController {
         return this.householdService.getAll()
     }
 
+    @Get('/:id')
+    getOne(@Param("id") household_id: number): Promise<Household> {
+        return this.householdService.findOne(household_id)
+    }
+
 }
