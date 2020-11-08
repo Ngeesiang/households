@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Person } from 'src/entity/person.entity';
 import { HouseholdType } from './enum-types';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsString, IsOptional, IsEnum, IsNumber } from "class-validator";
+import { IsOptional, IsEnum, IsNumber } from "class-validator";
 
 @Entity()
 export class Household {
