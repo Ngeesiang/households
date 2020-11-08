@@ -13,10 +13,8 @@ export class PersonService {
     ) {}
 
     async validation(person:Person) {
-    // Validate that the housing_unit_id entered is an existing housing unit
     // Validate that if a spouse is indicated, the person is an existing person
     // Validate that if a spouse is indicated, the marital status must be 'Married' and vice versa
-        const household_unit = await this.householdService.findOne(person.household_unit)
         if (person.spouse != null) {
             const spouse = await this.findOne(person.spouse, true)
             if (person.marital_status == 'Single') {
@@ -36,15 +34,15 @@ export class PersonService {
         return await manager.find(Person)
     }
 
-    async findOne(person_id: number, is_spouse=false) {
+    async findOne(personId: number, isSpouse=false) {
     // Find a person by person.id
     // If is_spouse == true, find person and throw 'Spouse indicated does not exist' error msg if not found
     // If is_spouse == false, find person and throw 'Person does not exist' error msg if not found
         const manager = this.connection.manager
         try {
-            return await manager.findOneOrFail(Person, person_id)
+            return await manager.findOneOrFail(Person, personId)
         } catch(err) {
-            if (is_spouse) {
+            if (isSpouse) {
                 throw new NotFoundException('Spouse indicated does not exist')
             }
             throw new NotFoundException('Person does not exist')
@@ -52,15 +50,15 @@ export class PersonService {
     }
 
     async create(person: Person) {
-    // Create a person and add the person into a household unit
+    // Create a person with no housing unit
     // If spouse is indicated, entity manager updates the spouse's spouse and marital status column
         const validation = await this.validation(person)
 
         await this.connection.transaction(async manager => {
-            const person_ORM = manager.create(Person, person)
-            await manager.save(person_ORM);
-            const personId = manager.getId(person_ORM)
-            if (person_ORM.spouse) {
+            const personORM = manager.create(Person, person)
+            await manager.save(personORM);
+            const personId = manager.getId(personORM)
+            if (personORM.spouse) {
                 await manager.update(Person, person.spouse, {spouse: personId, marital_status: MaritalStatusType.Married})
                 }
             return personId

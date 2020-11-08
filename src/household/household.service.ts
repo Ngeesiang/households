@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { Connection } from 'typeorm';
 import { Household } from '../entity/household.entity';
 import { HouseholdType } from 'src/entity/enum-types';
+import { Person } from 'src/entity/person.entity';
 
 
 @Injectable()
@@ -11,8 +12,8 @@ export class HouseholdService {
 
     validation(household: Household) {
     // Validate that the household_type in input exists in Enum HouseholdType
-        const household_types = HouseholdType
-        if (household.household_type in household_types == false) {
+        const householdTypes = HouseholdType
+        if (household.household_type in householdTypes == false) {
             throw new ForbiddenException('Please indicate a household type available')
         }
     }
@@ -23,11 +24,11 @@ export class HouseholdService {
         return await manager.find(Household)
     }
 
-    async findOne(household_id: number): Promise<Household> {
+    async findOne(householdId: number): Promise<Household> {
     // Retrieve one household by household_id
         const manager = this.connection.manager
         try {
-            return await manager.findOneOrFail(Household, household_id)
+            return await manager.findOneOrFail(Household, householdId)
         } catch(err) {
             throw new NotFoundException('Household unit does not exist')
         }
@@ -37,23 +38,23 @@ export class HouseholdService {
     // Create a household with no family members
         const validation = this.validation(household)
         await this.connection.transaction(async manager => {
-            const household_ORM = manager.create(Household, household)
-            return await manager.save(household_ORM);
+            const householdORM = manager.create(Household, household)
+            return await manager.save(householdORM);
         });
       }
 
-    async getHouseholdsByHouseholdIncome(total_household_income=0): Promise<Household[]> {
+    async getHouseholdsByHouseholdIncome(totalHouseholdIncome=0): Promise<Household[]> {
     // Find households with household_income < total_household_income
         const manager = this.connection.manager
-        const household_ids = await this.findHouseholdByIncome(total_household_income)
+        const householdIds = await this.findHouseholdByIncome(totalHouseholdIncome)
         var ids = []
-        for(var variable in household_ids) {
-            ids.push(household_ids[variable].id)
+        for(var variable in householdIds) {
+            ids.push(householdIds[variable].id)
         }
         return await manager.findByIds(Household, ids)
     }
 
-    async findHouseholdByIncome(total_household_income: number) {
+    async findHouseholdByIncome(totalHouseholdIncome: number) {
     // SQL query to select household.ids with household_income < total_household_income
         const manager = this.connection.manager
         return await manager.query(
@@ -61,23 +62,23 @@ export class HouseholdService {
             SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
             INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
             GROUP BY HOUSEHOLD.ID
-            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income}
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome}
             `
         )
     }
 
-    async getHouseholdsByHouseholdIncomeAndMaritalStatus(total_household_income=0): Promise<Household[]> {
+    async getHouseholdsByHouseholdIncomeAndMaritalStatus(totalHouseholdIncome=0): Promise<Household[]> {
     // Find households with household_income < total_household_income and has a married couple
         const manager = this.connection.manager
-        const household_ids = await this.findHouseholdByIncomeAndMaritalStatus(total_household_income)
+        const householdIds = await this.findHouseholdByIncomeAndMaritalStatus(totalHouseholdIncome)
         var ids = []
-        for(var variable in household_ids) {
-            ids.push(household_ids[variable].id)
+        for(var variable in householdIds) {
+            ids.push(householdIds[variable].id)
         }
         return await manager.findByIds(Household, ids)
     }
 
-    async findHouseholdByIncomeAndMaritalStatus(total_household_income: number) {
+    async findHouseholdByIncomeAndMaritalStatus(totalHouseholdIncome: number) {
     // SQL query to select household.ids with household_income < total_household_income
     // intersect
     // SQL query to select household.ids with two persons in the household married to each other
@@ -88,7 +89,7 @@ export class HouseholdService {
             (SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
             INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
             GROUP BY HOUSEHOLD.ID
-            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income}) 
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome}) 
             AS INCOME_TABLE
             INNER JOIN
             (SELECT HOUSEHOLD.ID FROM HOUSEHOLD 
@@ -109,85 +110,85 @@ export class HouseholdService {
         )
     }
 
-    async getHouseholdsByHouseholdIncomeAndAge(total_household_income=0, age=0, age_param: string): Promise<Household[]> {
+    async getHouseholdsByHouseholdIncomeAndAge(totalHouseholdIncome=0, age=0, ageParam: string): Promise<Household[]> {
     // Find households with household_income < total_household_income and with a family member with age
     // > age_given or age > age_given
         const manager = this.connection.manager
-        var household_ids;
-        if (age_param == 'Less than') {
-            household_ids = await this.findHouseholdByIncomeAndAge(total_household_income, age, "<", "MIN")
+        var householdIds;
+        if (ageParam == 'Less than') {
+            householdIds = await this.findHouseholdByIncomeAndAge(totalHouseholdIncome, age, "<", "MIN")
         } else {
-            household_ids = await this.findHouseholdByIncomeAndAge(total_household_income, age, ">", "MAX")
+            householdIds = await this.findHouseholdByIncomeAndAge(totalHouseholdIncome, age, ">", "MAX")
         }
         var ids = []
-        for(var variable in household_ids) {
-            ids.push(household_ids[variable].id)
+        for(var variable in householdIds) {
+            ids.push(householdIds[variable].id)
         }
         return await manager.findByIds(Household, ids)
     }
 
-    async findHouseholdByIncomeAndAge(total_household_income: number, age: number, age_param: string, min_max: string): Promise<any[]> {
+    async findHouseholdByIncomeAndAge(totalHouseholdIncome: number, age: number, ageParam: string, minMax: string): Promise<any[]> {
     // SQL query to select household.ids with household_income < total_household_income
     // intersect
     // SQL query to select household.ids with age < age_given or age > age_given
-        console.log(age_param)
-        console.log(min_max)
+        console.log(ageParam)
+        console.log(minMax)
         const manager = this.connection.manager
-        const curr_year = new Date().getFullYear()
+        const currYear = new Date().getFullYear()
         return await manager.query(
             `
             SELECT * FROM
-            (SELECT HOUSEHOLD.ID, ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${min_max}_AGE FROM HOUSEHOLD
+            (SELECT HOUSEHOLD.ID, ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${minMax}_AGE FROM HOUSEHOLD
             INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
             GROUP BY HOUSEHOLD.ID
-            HAVING ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${age_param} ${age}) 
+            HAVING ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${ageParam} ${age}) 
             AS AGE_TABLE
             INNER JOIN
             (SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
             INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
             GROUP BY HOUSEHOLD.ID
-            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income})
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome})
             AS INCOME_TABLE
             ON AGE_TABLE.ID = INCOME_TABLE.ID
             `
         );
     }
 
-    async getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(total_household_income=0, age=0, age_param:string): Promise<Household[]> {
+    async getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(totalHouseholdIncome=0, age=0, ageParam:string): Promise<Household[]> {
     // Find households with household_income < total_household_income and 
     // with a family member with age > age_given or age > age_given
     // with a married couple
         const manager = this.connection.manager
-        var household_ids;
-        if (age_param == 'Less than') {
-            household_ids = await this.findHouseholdByIncomeAndAgeAndMaritalStatus(total_household_income, age, "<", "MIN")
+        var householdIds;
+        if (ageParam == 'Less than') {
+            householdIds = await this.findHouseholdByIncomeAndAgeAndMaritalStatus(totalHouseholdIncome, age, "<", "MIN")
         } else {
-            household_ids = await this.findHouseholdByIncomeAndAgeAndMaritalStatus(total_household_income, age, ">", "MAX")
+            householdIds = await this.findHouseholdByIncomeAndAgeAndMaritalStatus(totalHouseholdIncome, age, ">", "MAX")
         }
         var ids = []
-        for(var variable in household_ids) {
-            ids.push(household_ids[variable].id)
+        for(var variable in householdIds) {
+            ids.push(householdIds[variable].id)
         }
         return await manager.findByIds(Household, ids)
-        return await household_ids
+
     }
 
-    async findHouseholdByIncomeAndAgeAndMaritalStatus(total_household_income: number, age: number, 
-        age_param: string, min_max: string) {
+    async findHouseholdByIncomeAndAgeAndMaritalStatus(totalHouseholdIncome: number, age: number, 
+        ageParam: string, minMax: string) {
     // SQL query to select household.ids with household_income < total_household_income
     // intersect
     // SQL query to select household.ids with age < age_given or age > age_given
     // intersect
     // SQL to select household.ids with a married couple in the housing unit
         const manager = this.connection.manager
-        const curr_year = new Date().getFullYear()
+        const currYear = new Date().getFullYear()
         return await manager.query(
             `
             SELECT * FROM
             ((SELECT HOUSEHOLD.ID AS INCOME_ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
             INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
             GROUP BY HOUSEHOLD.ID
-            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income}) 
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome}) 
             AS INCOME_TABLE
             INNER JOIN
             (SELECT HOUSEHOLD.ID FROM HOUSEHOLD 
@@ -205,15 +206,25 @@ export class HouseholdService {
             ON INCOME_TABLE.INCOME_ID = MARITAL_TABLE.ID)
             AS INTERIM_TABLE
             INNER JOIN
-            (SELECT HOUSEHOLD.ID , ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${min_max}_AGE FROM HOUSEHOLD
+            (SELECT HOUSEHOLD.ID , ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${minMax}_AGE FROM HOUSEHOLD
             INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
             GROUP BY HOUSEHOLD.ID
-            HAVING ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${age_param} ${age})
+            HAVING ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${ageParam} ${age})
             AS AGE_TABLE
             ON INTERIM_TABLE.INCOME_ID = AGE_TABLE.ID
             `
         )
 
         }
+
+    async delete(householdId: number) {
+        const manager = this.connection.manager
+        return await manager.delete(Household, householdId)
+    }
+
+    async addFamilyMember(householdId: number, personId: number) {
+        const manager = this.connection.manager
+        return await manager.update(Person, personId, { household_unit: householdId })
+    }
 
 }

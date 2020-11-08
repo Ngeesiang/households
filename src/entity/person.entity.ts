@@ -12,9 +12,8 @@ export class Person {
     id: number;
 
     @IsNumber()
-    @ApiProperty({'example': 1, 'description': 'Housing unit'})
     @ManyToOne(type => Household, household => household.family_members)
-    @Column()
+    @Column({default: null})
     @JoinColumn()
     household_unit: number;
 

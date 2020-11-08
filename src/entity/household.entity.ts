@@ -22,10 +22,10 @@ export class Household {
   @ApiProperty({'example': [], 'description': 'List of household members'})
   family_members: Person[];
 
-  @IsOptional()
   @IsNumber()
-  @Column({default:0, select: false})
-  sum: number;
+  @Column({default: true, select: false})
+  is_active: boolean;
+  
 }
 
 
