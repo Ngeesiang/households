@@ -1,16 +1,37 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { HouseholdController } from './household/household.controller';
-import { HouseholdService } from './household/household.service';
-import { HouseholdModule } from './household/household.module';
-import { PersonController } from './person/person.controller';
-import { PersonService } from './person/person.service';
-import { PersonModule } from './person/person.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { HouseholdsModule } from './household/household.module';
+import { PersonsModule } from './person/person.module';
+import { Household } from './entity/household.entity';
+import { Person } from './entity/person.entity';
+
 
 @Module({
-  imports: [HouseholdModule, PersonModule],
-  controllers: [AppController, HouseholdController, PersonController],
-  providers: [AppService, HouseholdService, PersonService],
+  imports: [
+    TypeOrmModule.forRoot(
+      {
+        "type": "postgres",
+        "host": "localhost",
+        "port": 5432,
+        "username": "postgres",
+        "password": "password",
+        "database": "households",
+        "entities": [Household, Person],
+        "migrationsTableName": "migration_table",
+        "migrations": ["migrations/*.{ts, js}"],
+        "cli": {
+            "migrationsDir": "migration"
+        },
+        "synchronize": true
+      }
+    ),
+    HouseholdsModule,
+    PersonsModule
+  ],
+    controllers: [AppController],
+    providers: [AppService],
 })
+
 export class AppModule {}
