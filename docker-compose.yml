@@ -1,0 +1,55 @@
+version: "3"
+services:
+  household_be:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: household_be
+    hostname: household_be
+    links:
+      - postgres:postgres
+    environment:
+      client: pg
+      host: localhost
+      db_port: 5432
+      database: households
+      user: postgres
+      password: password
+      app_port: 3000
+      database_url: "postgres://postgres:password@5432/households"
+      API_VERSION: 1.0.0.test
+      NODE_ENV: test
+      URL_PREFIX: household_be
+    ports:
+      - 3000:3000
+    command:
+      ["sh", "-c", "pm2-runtime \"npm run start:dev\""]
+    depends_on:
+      - postgres
+    restart: always
+    networks:
+      webnet:
+        aliases: 
+          - household_be
+    volumes:
+      - .:/usr/src/app/
+  postgres:
+    image: postgres:alpine
+    volumes:
+      - /var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: households
+      db_host: postgres
+    volumes:
+      - .:/usr/src/app/
+    networks:
+      webnet:
+        aliases: 
+          - postgres
+
+networks:
+  webnet:

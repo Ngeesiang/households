@@ -1,19 +1,20 @@
 import { Controller, Body, Post, Get, Param, Query, Delete, Res, HttpStatus, ForbiddenException } from '@nestjs/common';
-import { ApiCreatedResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { HouseholdService } from './household.service';
 import { Household } from 'src/entity/household.entity';
-import { PersonService } from 'src/person/person.service';
 
 @Controller('household')
 export class HouseholdController {
 
     constructor(private householdService: HouseholdService) {}
 
+    @ApiOperation({ summary: 'Get all households' })
     @Get()
     async getAll(): Promise<Household[]> {
         return await this.householdService.getAll()
     }
 
+    @ApiOperation({ summary: 'Get all households eligible for grants' })
     @Get('/grants/')
     @ApiQuery({
         name: "total_household_income",
@@ -57,12 +58,14 @@ export class HouseholdController {
 
     }
 
+    @ApiOperation({ summary: 'Get households by household_id' })
     @Get('/:household_id')
     getOne(@Param("household_id") householdId: number): Promise<Household> {
         return this.householdService.findOne(householdId)
     }
 
-    @Post('/:household_id/add_family_member')
+    @ApiOperation({ summary: 'Add an existing person to a household unit' })
+    @Post('/:household_id')
     async addFamilyMember(@Param("household_id") householdId: number,
         @Query("person_id") personId: number,
         @Res() res) {
@@ -73,6 +76,7 @@ export class HouseholdController {
             });
     }
 
+    @ApiOperation({ summary: 'Create a household unit with no family members' })
     @Post()
     async create(@Body() household: Household, @Res() res) {
         const creation = await this.householdService.create(household)
@@ -82,6 +86,7 @@ export class HouseholdController {
             });
     }
 
+    @ApiOperation({ summary: 'Delete a household unit and set family members\' household_unit_id to null' })
     @Delete('/:household_id')
     async delete(@Param("household_id") householdId: number, @Res() res){
         const deletion = await this.householdService.delete(householdId)
