@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
 import { Connection } from 'typeorm';
 import { Household } from '../entity/household.entity';
 import { HouseholdType } from 'src/entity/enum-types';
@@ -10,6 +10,7 @@ import { PersonService } from 'src/person/person.service';
 export class HouseholdService {
 
     constructor(private connection: Connection,
+        @Inject(forwardRef(() => PersonService))
         private personService: PersonService) {}
 
     validation(household: Household) {
@@ -23,14 +24,14 @@ export class HouseholdService {
     async getAll(): Promise<Household[]> {
     // Get all existing households with their respective family members
         const manager = this.connection.manager
-        return await manager.find(Household, { is_active: true })
+        return await manager.find(Household)
     }
 
     async findOne(householdId: number): Promise<Household> {
     // Retrieve one household by household_id
         const manager = this.connection.manager
         try {
-            return await manager.findOneOrFail(Household, { id: householdId, is_active: true })
+            return await manager.findOneOrFail(Household, { id: householdId })
         } catch(err) {
             throw new NotFoundException('Household unit does not exist')
         }
@@ -53,7 +54,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids, {is_active: true})
+        return await manager.findByIds(Household, ids)
     }
 
     async findHouseholdByIncome(totalHouseholdIncome: number) {
@@ -77,7 +78,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids, {is_active: true})
+        return await manager.findByIds(Household, ids)
     }
 
     async findHouseholdByIncomeAndMaritalStatus(totalHouseholdIncome: number) {
@@ -126,7 +127,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids, {is_active: true})
+        return await manager.findByIds(Household, ids)
     }
 
     async findHouseholdByIncomeAndAge(totalHouseholdIncome: number, age: number, ageParam: string, minMax: string): Promise<any[]> {
@@ -169,7 +170,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids, {is_active: true})
+        return await manager.findByIds(Household, ids)
 
     }
 
@@ -219,19 +220,20 @@ export class HouseholdService {
 
     async delete(householdId: number) {
         const manager = this.connection.manager
+        const household = await this.findOne(householdId)
         try {
-            return await manager.transaction(async transactionalEntityManager => {
-                const household = await this.findOne(householdId)
-                await transactionalEntityManager.createQueryBuilder()
-                    .relation(Person, "household_unit")
-                    .of(household) // you can use just post id as well
-                    .set(null);
+            return await manager.transaction(async () => {
+                const deletion = manager
+                .createQueryBuilder()
+                .delete()
+                .from(Household)
+                .where("id = :id", { id: householdId })
+                .execute();
                 await manager.createQueryBuilder()
                     .update(Person)
-                    .set({household_unit_id: householdId})
-                    .where("household_unit_id = :id", { id: householdId})
+                    .where("household_unit_id = :id", { id: householdId })
+                    .set({household_unit_id: null})
                     .execute();
-                await transactionalEntityManager.update(Household, householdId, { is_active: false });
             });
         } catch(err) {
             throw new NotFoundException('Error in deletion of Household')
@@ -244,7 +246,7 @@ export class HouseholdService {
         const validatePerson = await this.personService.findOne(personId)
         const validateHousehold = await this.findOne(householdId)
         try {
-            return await manager.transaction(async transactionalEntityManager => {
+            return await manager.transaction(async () => {
                 await manager.createQueryBuilder()
                     .relation(Household, "family_members")
                     .of(householdId)

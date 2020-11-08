@@ -12,11 +12,11 @@ export class Person {
     id: number;
 
     @IsNumber()
-    @ManyToOne(type => Household, household => household.id)
+    @ManyToOne(type => Household, household => household.id, {nullable: true, onDelete: "SET NULL"})
     household_unit: Household;
 
     @IsNumber()
-    @Column({default: null, select: false})
+    @Column({default: null})
     household_unit_id: number
 
     @IsString()

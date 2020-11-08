@@ -7,9 +7,9 @@ import { Person } from 'src/entity/person.entity';
 import { PersonModule } from 'src/person/person.module';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([Person]), PersonModule],
-  providers: [HouseholdService, PersonService],
+  imports:[TypeOrmModule.forFeature([Person]), forwardRef(() => PersonModule)],
+  providers: [HouseholdService],
   controllers: [HouseholdController],
-  exports: [TypeOrmModule]
+  exports: [TypeOrmModule, HouseholdService]
 })
 export class HouseholdModule {}

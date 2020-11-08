@@ -1,14 +1,17 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
 import { Connection } from 'typeorm';
 import { Person } from 'src/entity/person.entity';
 import { HouseholdService } from '../household/household.service'
 import { MaritalStatusType } from 'src/entity/enum-types';
+import { Household } from 'src/entity/household.entity';
 
 @Injectable()
 export class PersonService {
 
     constructor(
-        private connection: Connection
+        private connection: Connection,
+        @Inject(forwardRef(() => HouseholdService))
+        private householdService: HouseholdService
     ) {}
 
     async validation(person:Person) {
@@ -64,5 +67,30 @@ export class PersonService {
         } catch(err) {
             throw new ForbiddenException("Error in creation of Person.")
         }
+    }
+
+    async delete(personId: number) {
+        const person = await this.findOne(personId)
+        const household = await this.householdService.findOne(person.household_unit_id)
+        if (person.household_unit_id == null) {
+            throw new ForbiddenException("Person is not a family member of a household unit")
+        }
+        try {
+            const manager = this.connection.manager
+            return await manager.transaction(async () => {
+                await manager.createQueryBuilder()
+                    .relation(Household, "family_members")
+                    .of(household)
+                    .remove(person);
+                await manager.createQueryBuilder()
+                    .update(Person)
+                    .where("household_unit_id = :id", { id: person.household_unit_id })
+                    .set({household_unit_id: null})
+                    .execute()
+            })
+        } catch (err) {
+            throw new ForbiddenException("Error in deletion of family member")
+        }
+
     }
 }

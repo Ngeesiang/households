@@ -18,14 +18,8 @@ export class Household {
 
   @OneToMany(type => Person, person => person.household_unit, {
     eager: true,
-    cascade: ['insert', 'update']
   })
-  @ApiProperty({'description': 'List of household members'})
   family_members: Person[];
-
-  @IsNumber()
-  @Column({default: true, select: false})
-  is_active: boolean;
   
 }
 
