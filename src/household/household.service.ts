@@ -38,4 +38,65 @@ export class HouseholdService {
         });
       }
 
+    async getHouseholdsByHouseholdIncome(total_household_income=0): Promise<Household[]> {
+        const manager = this.connection.manager
+        const household_ids = await this.findHouseholdByIncome(total_household_income)
+        var ids = []
+        for(var variable in household_ids) {
+            ids.push(household_ids[variable].id)
+        }
+        return await manager.findByIds(Household, ids)
+    }
+
+    async findHouseholdByIncome(total_household_income: number) {
+        const manager = this.connection.manager
+        return await manager.query(
+            `
+            SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            GROUP BY HOUSEHOLD.ID
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income}
+            `
+        )
+    }
+
+    async getHouseholdsByHouseholdIncomeAndMaritalStatus(total_household_income=0): Promise<Household[]> {
+        const manager = this.connection.manager
+        const household_ids = await this.findHouseholdByIncomeAndMaritalStatus(total_household_income)
+        var ids = []
+        for(var variable in household_ids) {
+            ids.push(household_ids[variable].id)
+        }
+        return await manager.findByIds(Household, ids)
+    }
+
+    async findHouseholdByIncomeAndMaritalStatus(total_household_income: number) {
+        const manager = this.connection.manager
+        return await manager.query(
+            `
+            SELECT * FROM
+            (SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            GROUP BY HOUSEHOLD.ID
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income}) 
+            AS INCOME_TABLE
+            INNER JOIN
+            (SELECT HOUSEHOLD.ID FROM HOUSEHOLD 
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            WHERE EXISTS (
+                SELECT 1
+                FROM PERSON AS PERSON1, PERSON AS PERSON2
+                WHERE PERSON1.HOUSEHOLD_UNIT = HOUSEHOLD.ID 
+                AND PERSON1.HOUSEHOLD_UNIT = PERSON2.HOUSEHOLD_UNIT
+                AND PERSON1.ID <> PERSON2.ID
+                AND PERSON1.SPOUSE=PERSON2.ID 
+                AND PERSON2.SPOUSE=PERSON1.ID
+                
+            )) 
+            AS MARITAL_TABLE
+            ON INCOME_TABLE.ID = MARITAL_TABLE.ID
+            `
+        )
+    }
+
 }
