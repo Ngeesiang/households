@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ForbiddenException, Res, HttpStatus } from '@nestjs/common';
 import { PersonService } from './person.service';
 import { Person } from 'src/entity/person.entity';
 import { ApiCreatedResponse } from '@nestjs/swagger';
@@ -13,16 +13,24 @@ export class PersonController {
       return this.personsService.getAll()
     }
 
-    @Get('/:id')
+    @Get('/:person_id')
     findOnePerson(
-      @Param('id') id: number): Promise<Person> {
+      @Param('person_id') id: number): Promise<Person> {
       return this.personsService.findOne(id)
     }
 
     @Post()
-    @ApiCreatedResponse({ description: 'The record has been successfully created.'})
-    create(@Body() person: Person) {
-        return this.personsService.create(person)
+    create(@Body() person: Person, @Res() res) {
+        try {
+          const create = this.personsService.create(person)
+          return res.status(HttpStatus.OK).json({
+            status: 200,
+            message: "Person has been created.",
+          });
+        } catch(err) {
+          throw new ForbiddenException(err)
+        }
+        
     }
 
 }

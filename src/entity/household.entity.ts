@@ -17,7 +17,8 @@ export class Household {
   household_type: HouseholdType
 
   @OneToMany(type => Person, person => person.household_unit, {
-    eager: true
+    eager: true,
+    cascade: ['insert', 'update']
   })
   @ApiProperty({'example': [], 'description': 'List of household members'})
   family_members: Person[];

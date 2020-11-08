@@ -1,4 +1,4 @@
-import { Controller, Body, Post, Get, Param, Query, Delete } from '@nestjs/common';
+import { Controller, Body, Post, Get, Param, Query, Delete, Res, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { ApiCreatedResponse, ApiQuery } from '@nestjs/swagger';
 import { HouseholdService } from './household.service';
 import { Household } from 'src/entity/household.entity';
@@ -44,47 +44,66 @@ export class HouseholdController {
         @Query('marital_status') maritalStatus: string): Promise<Household[]> {
         if (ageParam == '-') {
             age = 0
-            console.log(maritalStatus)
             if (maritalStatus == 'Non-requirement') {
-                console.log("getHouseholdsByHouseholdIncome Function trigger")
                 return this.householdService.getHouseholdsByHouseholdIncome(totalHouseholdIncome)
             } else {
-                console.log("getHouseholdsByHouseholdIncomeAndMaritalStatus Function trigger")
                 return this.householdService.getHouseholdsByHouseholdIncomeAndMaritalStatus(totalHouseholdIncome)
             }
         } else {
             if (maritalStatus == 'Non-requirement') {
-                console.log("getHouseholdsByHouseholdIncomeAndAge Function trigger")
                 return this.householdService.getHouseholdsByHouseholdIncomeAndAge(totalHouseholdIncome, age, ageParam)
             }
-            console.log("getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus Function trigger")
             return this.householdService.getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(totalHouseholdIncome, age, ageParam)
         }
 
     }
 
-    @Get('/:id')
-    getOne(@Param("id") householdId: number): Promise<Household> {
+    @Get('/:household_id')
+    getOne(@Param("household_id") householdId: number): Promise<Household> {
         return this.householdService.findOne(householdId)
     }
 
-    @Post('/:id/add_family_member')
-    @ApiCreatedResponse({ description: 'Person has been added the household.'})
-    addFamilyMember(@Param("id") householdId: number,
-    @Query("person_id") personId: number) {
-        const validate = this.personService.findOne(personId)
-        return this.householdService.addFamilyMember(householdId, personId)
+    @Post('/:household_id/add_family_member')
+    addFamilyMember(@Param("household_id") householdId: number,
+        @Query("person_id") personId: number,
+        @Res() res) {
+            try {
+                const validate = this.personService.findOne(personId)
+                const create = this.householdService.addFamilyMember(householdId, personId)
+                return res.status(HttpStatus.OK).json({
+                    status: 200,
+                    message: "Person has been added the household.",
+                  });
+            } catch(err) {
+                throw new ForbiddenException(err)
+            }
     }
 
     @Post()
-    @ApiCreatedResponse({ description: 'The record has been successfully created.'})
-    create(@Body() household: Household) {
-        return this.householdService.create(household)
+    async create(@Body() household: Household, @Res() res) {
+        try {
+            const creation = await this.householdService.create(household)
+            return res.status(HttpStatus.OK).json({
+                status: 201,
+                message: "Household has been created with no family members.",
+              });
+        } catch(err) {
+            throw new ForbiddenException(err)
+        }
     }
 
-    @Delete('/:id')
-    delete(@Param("id") householdId: number ){
-        return this.householdService.delete(householdId)
+    @Delete('/:household_id')
+    async delete(@Param("household_id") householdId: number, @Res() res){
+        try {
+            const deletion = await this.householdService.delete(householdId)
+            return res.status(HttpStatus.OK).json({
+                status: 200,
+                message: "Household has been created with no family members.",
+              });
+        } catch(err) {
+            throw new ForbiddenException(err)
+        }
+        
     }
 
 }

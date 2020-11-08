@@ -6,6 +6,7 @@ import { HouseholdModule } from './household/household.module';
 import { PersonModule } from './person/person.module';
 import { Household } from './entity/household.entity';
 import { Person } from './entity/person.entity';
+import "reflect-metadata";
 
 
 @Module({

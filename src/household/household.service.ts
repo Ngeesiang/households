@@ -132,8 +132,6 @@ export class HouseholdService {
     // SQL query to select household.ids with household_income < total_household_income
     // intersect
     // SQL query to select household.ids with age < age_given or age > age_given
-        console.log(ageParam)
-        console.log(minMax)
         const manager = this.connection.manager
         const currYear = new Date().getFullYear()
         return await manager.query(
@@ -234,7 +232,14 @@ export class HouseholdService {
 
     async addFamilyMember(householdId: number, personId: number) {
         const manager = this.connection.manager
-        return await manager.update(Person, personId, { household_unit: householdId })
+        const household = await manager.findOneOrFail(Household, householdId)
+        const person = await manager.findOneOrFail(Person, personId)
+        console.log(household)
+        console.log(person)
+        return await manager.createQueryBuilder()
+        .relation(Household, "family_member")
+        .of(householdId)
+        .add(personId)
     }
 
 }
