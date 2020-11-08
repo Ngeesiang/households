@@ -18,4 +18,10 @@ export class HouseholdController {
         return this.householdService.findOne(household_id)
     }
 
+    @Post()
+    @ApiCreatedResponse({ description: 'The record has been successfully created.'})
+    create(@Body() household: Household) {
+        this.householdService.create(household)
+    }
+
 }
