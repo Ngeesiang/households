@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HouseholdsModule } from './household/household.module';
-import { PersonsModule } from './person/person.module';
+import { HouseholdModule } from './household/household.module';
+import { PersonModule } from './person/person.module';
 import { Household } from './entity/household.entity';
 import { Person } from './entity/person.entity';
 
@@ -27,8 +27,8 @@ import { Person } from './entity/person.entity';
         "synchronize": true
       }
     ),
-    HouseholdsModule,
-    PersonsModule
+    HouseholdModule,
+    PersonModule
   ],
     controllers: [AppController],
     providers: [AppService],

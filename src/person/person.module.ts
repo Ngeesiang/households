@@ -12,4 +12,4 @@ import { HouseholdService } from 'src/household/household.service';
   exports: [TypeOrmModule]
   
 })
-export class PersonsModule {}
+export class PersonModule {}

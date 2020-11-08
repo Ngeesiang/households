@@ -10,4 +10,4 @@ import { Household } from '../entity/household.entity';
   controllers: [HouseholdController],
   exports: [TypeOrmModule]
 })
-export class HouseholdsModule {}
+export class HouseholdModule {}
