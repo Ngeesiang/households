@@ -50,6 +50,13 @@ export class HouseholdController {
                 console.log("getHouseholdsByHouseholdIncomeAndMaritalStatus Function trigger")
                 return this.householdService.getHouseholdsByHouseholdIncomeAndMaritalStatus(total_household_income)
             }
+        } else {
+            if (marital_status == 'Non-requirement') {
+                console.log("getHouseholdsByHouseholdIncomeAndAge Function trigger")
+                return this.householdService.getHouseholdsByHouseholdIncomeAndAge(total_household_income, age, age_param)
+            }
+            console.log("getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus Function trigger")
+            return this.householdService.getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(total_household_income, age, age_param)
         }
 
     }

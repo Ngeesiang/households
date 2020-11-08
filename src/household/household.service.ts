@@ -99,4 +99,98 @@ export class HouseholdService {
         )
     }
 
+    async getHouseholdsByHouseholdIncomeAndAge(total_household_income=0, age=0, age_param: string): Promise<Household[]> {
+        const manager = this.connection.manager
+        var household_ids;
+        if (age_param == 'Less than') {
+            household_ids = await this.findHouseholdByIncomeAndAge(total_household_income, age, "<", "MIN")
+        } else {
+            household_ids = await this.findHouseholdByIncomeAndAge(total_household_income, age, ">", "MAX")
+        }
+        var ids = []
+        for(var variable in household_ids) {
+            ids.push(household_ids[variable].id)
+        }
+        return await manager.findByIds(Household, ids)
+    }
+
+    async findHouseholdByIncomeAndAge(total_household_income: number, age: number, age_param: string, min_max: string): Promise<any[]> {
+        console.log(age_param)
+        console.log(min_max)
+        const manager = this.connection.manager
+        const curr_year = new Date().getFullYear()
+        return await manager.query(
+            `
+            SELECT * FROM
+            (SELECT HOUSEHOLD.ID, ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${min_max}_AGE FROM HOUSEHOLD
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            GROUP BY HOUSEHOLD.ID
+            HAVING ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${age_param} ${age}) 
+            AS AGE_TABLE
+            INNER JOIN
+            (SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            GROUP BY HOUSEHOLD.ID
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income})
+            AS INCOME_TABLE
+            ON AGE_TABLE.ID = INCOME_TABLE.ID
+            `
+        );
+    }
+
+    async getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(total_household_income=0, age=0, age_param:string): Promise<Household[]> {
+        const manager = this.connection.manager
+        var household_ids;
+        if (age_param == 'Less than') {
+            household_ids = await this.findHouseholdByIncomeAndAgeAndMaritalStatus(total_household_income, age, "<", "MIN")
+        } else {
+            household_ids = await this.findHouseholdByIncomeAndAgeAndMaritalStatus(total_household_income, age, ">", "MAX")
+        }
+        var ids = []
+        for(var variable in household_ids) {
+            ids.push(household_ids[variable].id)
+        }
+        return await manager.findByIds(Household, ids)
+        return await household_ids
+    }
+
+    async findHouseholdByIncomeAndAgeAndMaritalStatus(total_household_income: number, age: number, 
+        age_param: string, min_max: string) {
+        const manager = this.connection.manager
+        const curr_year = new Date().getFullYear()
+        return await manager.query(
+            `
+            SELECT * FROM
+            ((SELECT HOUSEHOLD.ID AS INCOME_ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            GROUP BY HOUSEHOLD.ID
+            HAVING SUM(PERSON.ANNUAL_INCOME) < ${total_household_income}) 
+            AS INCOME_TABLE
+            INNER JOIN
+            (SELECT HOUSEHOLD.ID FROM HOUSEHOLD 
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            WHERE EXISTS (
+                SELECT 1
+                FROM PERSON AS PERSON1, PERSON AS PERSON2
+                WHERE PERSON1.HOUSEHOLD_UNIT = HOUSEHOLD.ID 
+                AND PERSON1.HOUSEHOLD_UNIT = PERSON2.HOUSEHOLD_UNIT
+                AND PERSON1.ID <> PERSON2.ID
+                AND PERSON1.SPOUSE=PERSON2.ID 
+                AND PERSON2.SPOUSE=PERSON1.ID
+            ))
+            AS MARITAL_TABLE
+            ON INCOME_TABLE.INCOME_ID = MARITAL_TABLE.ID)
+            AS INTERIM_TABLE
+            INNER JOIN
+            (SELECT HOUSEHOLD.ID , ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${min_max}_AGE FROM HOUSEHOLD
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            GROUP BY HOUSEHOLD.ID
+            HAVING ${min_max}(${curr_year} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${age_param} ${age})
+            AS AGE_TABLE
+            ON INTERIM_TABLE.INCOME_ID = AGE_TABLE.ID
+            `
+        )
+
+        }
+
 }
