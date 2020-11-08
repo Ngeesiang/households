@@ -10,7 +10,6 @@ import { Household } from 'src/entity/household.entity';
   imports:[TypeOrmModule.forFeature([Household])],
   controllers: [PersonController],
   providers: [PersonService, HouseholdService],
-  exports: [TypeOrmModule]
-  
+  exports: [TypeOrmModule, PersonService]
 })
 export class PersonModule {}

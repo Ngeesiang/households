@@ -3,12 +3,14 @@ import { Connection } from 'typeorm';
 import { Household } from '../entity/household.entity';
 import { HouseholdType } from 'src/entity/enum-types';
 import { Person } from 'src/entity/person.entity';
+import { PersonService } from 'src/person/person.service';
 
 
 @Injectable()
 export class HouseholdService {
 
-    constructor(private connection: Connection) {}
+    constructor(private connection: Connection,
+        private personService: PersonService) {}
 
     validation(household: Household) {
     // Validate that the household_type in input exists in Enum HouseholdType
@@ -218,28 +220,33 @@ export class HouseholdService {
 
     async delete(householdId: number) {
         const manager = this.connection.manager
-        await manager.transaction(async transactionalEntityManager => {
-            await transactionalEntityManager.createQueryBuilder()
-            .update(Person)
-            .where("household_unit = :householdId", { householdId: householdId })
-            .set({ 
-                household_unit: null
-            })
-            .execute();
-            await transactionalEntityManager.update(Household, householdId, { is_active: false });
-        });
+        try {
+            return await manager.transaction(async transactionalEntityManager => {
+                const household = await this.findOne(householdId)
+                await transactionalEntityManager.createQueryBuilder()
+                    .relation(Person, "household_unit")
+                    .of(household) // you can use just post id as well
+                    .set(null);
+                console.log('transaction done')
+                await transactionalEntityManager.update(Household, householdId, { is_active: false });
+            });
+        } catch(err) {
+            throw new NotFoundException('Error in deletion')
+        }
+        
     }
 
     async addFamilyMember(householdId: number, personId: number) {
         const manager = this.connection.manager
-        const household = await manager.findOneOrFail(Household, householdId)
-        const person = await manager.findOneOrFail(Person, personId)
-        console.log(household)
-        console.log(person)
-        return await manager.createQueryBuilder()
-        .relation(Household, "family_member")
-        .of(householdId)
-        .add(personId)
+        try {
+            const validatePerson = await this.personService.findOne(personId)
+            const validateHousehold = await this.findOne(householdId)
+            return await manager.createQueryBuilder()
+            .relation(Household, "family_members")
+            .of(householdId)
+            .add(personId)
+        } catch (err) {
+            throw new ForbiddenException("Error in addition of family member")
+        }
     }
-
 }

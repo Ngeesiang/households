@@ -8,8 +8,7 @@ import { MaritalStatusType } from 'src/entity/enum-types';
 export class PersonService {
 
     constructor(
-        private connection: Connection,
-        private householdService: HouseholdService
+        private connection: Connection
     ) {}
 
     async validation(person:Person) {

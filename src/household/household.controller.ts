@@ -7,8 +7,7 @@ import { PersonService } from 'src/person/person.service';
 @Controller('household')
 export class HouseholdController {
 
-    constructor(private householdService: HouseholdService,
-        private personService: PersonService) {}
+    constructor(private householdService: HouseholdService) {}
 
     @Get()
     getAll(): Promise<Household[]> {
@@ -64,45 +63,32 @@ export class HouseholdController {
     }
 
     @Post('/:household_id/add_family_member')
-    addFamilyMember(@Param("household_id") householdId: number,
+    async addFamilyMember(@Param("household_id") householdId: number,
         @Query("person_id") personId: number,
         @Res() res) {
-            try {
-                const validate = this.personService.findOne(personId)
-                const create = this.householdService.addFamilyMember(householdId, personId)
-                return res.status(HttpStatus.OK).json({
-                    status: 200,
-                    message: "Person has been added the household.",
-                  });
-            } catch(err) {
-                throw new ForbiddenException(err)
-            }
+        const addition = await this.householdService.addFamilyMember(householdId, personId)
+        return res.status(HttpStatus.OK).json({
+            status: 200,
+            message: "Person added to household",
+            });
     }
 
     @Post()
     async create(@Body() household: Household, @Res() res) {
-        try {
-            const creation = await this.householdService.create(household)
-            return res.status(HttpStatus.OK).json({
-                status: 201,
-                message: "Household has been created with no family members.",
-              });
-        } catch(err) {
-            throw new ForbiddenException(err)
-        }
+        const creation = await this.householdService.create(household)
+        return res.status(HttpStatus.CREATED).json({
+            status: 201,
+            message: "Household has been created with no family members.",
+            });
     }
 
     @Delete('/:household_id')
     async delete(@Param("household_id") householdId: number, @Res() res){
-        try {
-            const deletion = await this.householdService.delete(householdId)
-            return res.status(HttpStatus.OK).json({
-                status: 200,
-                message: "Household has been created with no family members.",
-              });
-        } catch(err) {
-            throw new ForbiddenException(err)
-        }
+        const deletion = await this.householdService.delete(householdId)
+        return res.status(HttpStatus.OK).json({
+            status: 200,
+            message: "Household has been deleted",
+          });
         
     }
 
