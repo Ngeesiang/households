@@ -9,28 +9,22 @@ export class PersonController {
     constructor(private personsService: PersonService) {}
 
     @Get()
-    findAllPersons(): Promise<Person[]> {
-      return this.personsService.getAll()
+    async findAllPersons(): Promise<Person[]> {
+      return await this.personsService.getAll()
     }
 
     @Get('/:person_id')
-    findOnePerson(
+    async findOnePerson(
       @Param('person_id') id: number): Promise<Person> {
-      return this.personsService.findOne(id)
+      return await this.personsService.findOne(id)
     }
 
     @Post()
-    create(@Body() person: Person, @Res() res) {
-        try {
-          const create = this.personsService.create(person)
-          return res.status(HttpStatus.OK).json({
-            status: 200,
-            message: "Person has been created.",
-          });
-        } catch(err) {
-          throw new ForbiddenException(err)
-        }
-        
+    async create(@Body() person: Person, @Res() res) {
+        const create = await this.personsService.create(person)
+        return res.status(HttpStatus.OK).json({
+          status: 200,
+          message: "Person has been created.",
+        });
     }
-
 }

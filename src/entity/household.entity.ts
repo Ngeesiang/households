@@ -20,7 +20,7 @@ export class Household {
     eager: true,
     cascade: ['insert', 'update']
   })
-  @ApiProperty({'example': [], 'description': 'List of household members'})
+  @ApiProperty({'description': 'List of household members'})
   family_members: Person[];
 
   @IsNumber()

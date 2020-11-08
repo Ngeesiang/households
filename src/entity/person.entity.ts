@@ -15,6 +15,10 @@ export class Person {
     @ManyToOne(type => Household, household => household.id)
     household_unit: Household;
 
+    @IsNumber()
+    @Column({default: null, select: false})
+    household_unit_id: number
+
     @IsString()
     @ApiProperty({'example': 'John', 'description': 'Name'})
     @Column()
@@ -32,7 +36,7 @@ export class Person {
 
     @IsOptional()
     @IsNumber()
-    @ApiProperty({'example': 1, 'description': 'Spouse id'})
+    @ApiProperty({'example': null, 'description': 'Spouse id'})
     @OneToOne(type => Person, person => person.id)
     @Column({default: null})
     spouse: number;

@@ -52,16 +52,17 @@ export class PersonService {
     // Create a person with no housing unit
     // If spouse is indicated, entity manager updates the spouse's spouse and marital status column
         const validation = await this.validation(person)
-
-        await this.connection.transaction(async transactionalEntityManager => {
-            const personORM = transactionalEntityManager.create(Person, person)
-            await transactionalEntityManager.save(personORM);
-            const personId = transactionalEntityManager.getId(personORM)
-            if (personORM.spouse) {
-                await transactionalEntityManager.update(Person, person.spouse, {spouse: personId, marital_status: MaritalStatusType.Married})
-                }
-            return personId
-        })
+        try {
+            return await this.connection.transaction(async transactionalEntityManager => {
+                const personORM = transactionalEntityManager.create(Person, person)
+                await transactionalEntityManager.save(personORM);
+                const personId = transactionalEntityManager.getId(personORM)
+                if (personORM.spouse) {
+                    await transactionalEntityManager.update(Person, person.spouse, {spouse: personId, marital_status: MaritalStatusType.Married})
+                    }
+            })
+        } catch(err) {
+            throw new ForbiddenException("Error in creation of Person.")
+        }
     }
-
 }

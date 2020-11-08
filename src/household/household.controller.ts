@@ -10,8 +10,8 @@ export class HouseholdController {
     constructor(private householdService: HouseholdService) {}
 
     @Get()
-    getAll(): Promise<Household[]> {
-        return this.householdService.getAll()
+    async getAll(): Promise<Household[]> {
+        return await this.householdService.getAll()
     }
 
     @Get('/grants/')
@@ -36,7 +36,7 @@ export class HouseholdController {
         required: true,
         enum: ['Married', 'Non-requirement'],
       })
-    getHouseholdsByHouseholdIncome(
+    async getHouseholdsByHouseholdIncome(
         @Query('total_household_income') totalHouseholdIncome: number,
         @Query('age') age: number,
         @Query('age_param') ageParam: string,
@@ -44,15 +44,15 @@ export class HouseholdController {
         if (ageParam == '-') {
             age = 0
             if (maritalStatus == 'Non-requirement') {
-                return this.householdService.getHouseholdsByHouseholdIncome(totalHouseholdIncome)
+                return await this.householdService.getHouseholdsByHouseholdIncome(totalHouseholdIncome)
             } else {
-                return this.householdService.getHouseholdsByHouseholdIncomeAndMaritalStatus(totalHouseholdIncome)
+                return await this.householdService.getHouseholdsByHouseholdIncomeAndMaritalStatus(totalHouseholdIncome)
             }
         } else {
             if (maritalStatus == 'Non-requirement') {
-                return this.householdService.getHouseholdsByHouseholdIncomeAndAge(totalHouseholdIncome, age, ageParam)
+                return await this.householdService.getHouseholdsByHouseholdIncomeAndAge(totalHouseholdIncome, age, ageParam)
             }
-            return this.householdService.getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(totalHouseholdIncome, age, ageParam)
+            return await this.householdService.getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(totalHouseholdIncome, age, ageParam)
         }
 
     }

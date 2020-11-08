@@ -62,8 +62,7 @@ export class HouseholdService {
         return await manager.query(
             `
             SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
-            WHERE HOUSEHOLD.IS_ACTIVE = TRUE
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON PERSON.HOUSEHOLD_UNIT_ID = HOUSEHOLD.ID
             GROUP BY HOUSEHOLD.ID
             HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome}
             `
@@ -90,18 +89,18 @@ export class HouseholdService {
             `
             SELECT * FROM
             (SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT_ID
             GROUP BY HOUSEHOLD.ID
             HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome}) 
             AS INCOME_TABLE
             INNER JOIN
             (SELECT HOUSEHOLD.ID FROM HOUSEHOLD 
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT_ID
             WHERE EXISTS (
                 SELECT 1
                 FROM PERSON AS PERSON1, PERSON AS PERSON2
-                WHERE PERSON1.HOUSEHOLD_UNIT = HOUSEHOLD.ID 
-                AND PERSON1.HOUSEHOLD_UNIT = PERSON2.HOUSEHOLD_UNIT
+                WHERE PERSON1.HOUSEHOLD_UNIT_ID = HOUSEHOLD.ID 
+                AND PERSON1.HOUSEHOLD_UNIT_ID = PERSON2.HOUSEHOLD_UNIT_ID
                 AND PERSON1.ID <> PERSON2.ID
                 AND PERSON1.SPOUSE=PERSON2.ID 
                 AND PERSON2.SPOUSE=PERSON1.ID
@@ -140,13 +139,13 @@ export class HouseholdService {
             `
             SELECT * FROM
             (SELECT HOUSEHOLD.ID, ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${minMax}_AGE FROM HOUSEHOLD
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT_ID
             GROUP BY HOUSEHOLD.ID
             HAVING ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${ageParam} ${age}) 
             AS AGE_TABLE
             INNER JOIN
             (SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT_ID
             GROUP BY HOUSEHOLD.ID
             HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome})
             AS INCOME_TABLE
@@ -187,18 +186,18 @@ export class HouseholdService {
             `
             SELECT * FROM
             ((SELECT HOUSEHOLD.ID AS INCOME_ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT_ID
             GROUP BY HOUSEHOLD.ID
             HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome}) 
             AS INCOME_TABLE
             INNER JOIN
             (SELECT HOUSEHOLD.ID FROM HOUSEHOLD 
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT_ID
             WHERE EXISTS (
                 SELECT 1
                 FROM PERSON AS PERSON1, PERSON AS PERSON2
-                WHERE PERSON1.HOUSEHOLD_UNIT = HOUSEHOLD.ID 
-                AND PERSON1.HOUSEHOLD_UNIT = PERSON2.HOUSEHOLD_UNIT
+                WHERE PERSON1.HOUSEHOLD_UNIT_ID = HOUSEHOLD.ID 
+                AND PERSON1.HOUSEHOLD_UNIT_ID = PERSON2.HOUSEHOLD_UNIT_ID
                 AND PERSON1.ID <> PERSON2.ID
                 AND PERSON1.SPOUSE=PERSON2.ID 
                 AND PERSON2.SPOUSE=PERSON1.ID
@@ -208,7 +207,7 @@ export class HouseholdService {
             AS INTERIM_TABLE
             INNER JOIN
             (SELECT HOUSEHOLD.ID , ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) AS ${minMax}_AGE FROM HOUSEHOLD
-            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
+            INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT_ID
             GROUP BY HOUSEHOLD.ID
             HAVING ${minMax}(${currYear} - EXTRACT(YEAR FROM CAST(PERSON.DATE_OF_BIRTH AS DATE))) ${ageParam} ${age})
             AS AGE_TABLE
@@ -227,25 +226,32 @@ export class HouseholdService {
                     .relation(Person, "household_unit")
                     .of(household) // you can use just post id as well
                     .set(null);
-                console.log('transaction done')
+                await manager.createQueryBuilder()
+                    .update(Person)
+                    .set({household_unit_id: householdId})
+                    .where("household_unit_id = :id", { id: householdId})
+                    .execute();
                 await transactionalEntityManager.update(Household, householdId, { is_active: false });
             });
         } catch(err) {
-            throw new NotFoundException('Error in deletion')
+            throw new NotFoundException('Error in deletion of Household')
         }
         
     }
 
     async addFamilyMember(householdId: number, personId: number) {
         const manager = this.connection.manager
+        const validatePerson = await this.personService.findOne(personId)
+        const validateHousehold = await this.findOne(householdId)
         try {
-            const validatePerson = await this.personService.findOne(personId)
-            const validateHousehold = await this.findOne(householdId)
-            return await manager.createQueryBuilder()
-            .relation(Household, "family_members")
-            .of(householdId)
-            .add(personId)
-        } catch (err) {
+            return await manager.transaction(async transactionalEntityManager => {
+                await manager.createQueryBuilder()
+                    .relation(Household, "family_members")
+                    .of(householdId)
+                    .add(personId)
+                await manager.update(Person, personId, {household_unit_id: householdId})
+            })
+         } catch (err) {
             throw new ForbiddenException("Error in addition of family member")
         }
     }
