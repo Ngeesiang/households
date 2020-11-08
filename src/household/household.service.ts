@@ -10,6 +10,7 @@ export class HouseholdService {
     constructor(private connection: Connection) {}
 
     validation(household: Household) {
+    // Validate that the household_type in input exists in Enum HouseholdType
         const household_types = HouseholdType
         if (household.household_type in household_types == false) {
             throw new ForbiddenException('Please indicate a household type available')
@@ -17,11 +18,13 @@ export class HouseholdService {
     }
 
     async getAll(): Promise<Household[]> {
+    // Get all existing households with their respective family members
         const manager = this.connection.manager
         return await manager.find(Household)
     }
 
     async findOne(household_id: number): Promise<Household> {
+    // Retrieve one household by household_id
         const manager = this.connection.manager
         try {
             return await manager.findOneOrFail(Household, household_id)
@@ -31,6 +34,7 @@ export class HouseholdService {
     }
 
     async create(household: Household) {
+    // Create a household with no family members
         const validation = this.validation(household)
         await this.connection.transaction(async manager => {
             const household_ORM = manager.create(Household, household)
@@ -39,6 +43,7 @@ export class HouseholdService {
       }
 
     async getHouseholdsByHouseholdIncome(total_household_income=0): Promise<Household[]> {
+    // Find households with household_income < total_household_income
         const manager = this.connection.manager
         const household_ids = await this.findHouseholdByIncome(total_household_income)
         var ids = []
@@ -49,6 +54,7 @@ export class HouseholdService {
     }
 
     async findHouseholdByIncome(total_household_income: number) {
+    // SQL query to select household.ids with household_income < total_household_income
         const manager = this.connection.manager
         return await manager.query(
             `
@@ -61,6 +67,7 @@ export class HouseholdService {
     }
 
     async getHouseholdsByHouseholdIncomeAndMaritalStatus(total_household_income=0): Promise<Household[]> {
+    // Find households with household_income < total_household_income and has a married couple
         const manager = this.connection.manager
         const household_ids = await this.findHouseholdByIncomeAndMaritalStatus(total_household_income)
         var ids = []
@@ -71,6 +78,9 @@ export class HouseholdService {
     }
 
     async findHouseholdByIncomeAndMaritalStatus(total_household_income: number) {
+    // SQL query to select household.ids with household_income < total_household_income
+    // intersect
+    // SQL query to select household.ids with two persons in the household married to each other
         const manager = this.connection.manager
         return await manager.query(
             `
@@ -100,6 +110,8 @@ export class HouseholdService {
     }
 
     async getHouseholdsByHouseholdIncomeAndAge(total_household_income=0, age=0, age_param: string): Promise<Household[]> {
+    // Find households with household_income < total_household_income and with a family member with age
+    // > age_given or age > age_given
         const manager = this.connection.manager
         var household_ids;
         if (age_param == 'Less than') {
@@ -115,6 +127,9 @@ export class HouseholdService {
     }
 
     async findHouseholdByIncomeAndAge(total_household_income: number, age: number, age_param: string, min_max: string): Promise<any[]> {
+    // SQL query to select household.ids with household_income < total_household_income
+    // intersect
+    // SQL query to select household.ids with age < age_given or age > age_given
         console.log(age_param)
         console.log(min_max)
         const manager = this.connection.manager
@@ -139,6 +154,9 @@ export class HouseholdService {
     }
 
     async getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(total_household_income=0, age=0, age_param:string): Promise<Household[]> {
+    // Find households with household_income < total_household_income and 
+    // with a family member with age > age_given or age > age_given
+    // with a married couple
         const manager = this.connection.manager
         var household_ids;
         if (age_param == 'Less than') {
@@ -156,6 +174,11 @@ export class HouseholdService {
 
     async findHouseholdByIncomeAndAgeAndMaritalStatus(total_household_income: number, age: number, 
         age_param: string, min_max: string) {
+    // SQL query to select household.ids with household_income < total_household_income
+    // intersect
+    // SQL query to select household.ids with age < age_given or age > age_given
+    // intersect
+    // SQL to select household.ids with a married couple in the housing unit
         const manager = this.connection.manager
         const curr_year = new Date().getFullYear()
         return await manager.query(

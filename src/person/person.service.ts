@@ -13,6 +13,9 @@ export class PersonService {
     ) {}
 
     async validation(person:Person) {
+    // Validate that the housing_unit_id entered is an existing housing unit
+    // Validate that if a spouse is indicated, the person is an existing person
+    // Validate that if a spouse is indicated, the marital status must be 'Married' and vice versa
         const household_unit = await this.householdService.findOne(person.household_unit)
         if (person.spouse != null) {
             const spouse = await this.findOne(person.spouse, true)
@@ -28,11 +31,15 @@ export class PersonService {
     }
 
     async getAll(): Promise<Person[]> {
+    // Get all persons in db
         const manager = this.connection.manager
         return await manager.find(Person)
     }
 
     async findOne(person_id: number, is_spouse=false) {
+    // Find a person by person.id
+    // If is_spouse == true, find person and throw 'Spouse indicated does not exist' error msg if not found
+    // If is_spouse == false, find person and throw 'Person does not exist' error msg if not found
         const manager = this.connection.manager
         try {
             return await manager.findOneOrFail(Person, person_id)
@@ -45,7 +52,8 @@ export class PersonService {
     }
 
     async create(person: Person) {
-
+    // Create a person and add the person into a household unit
+    // If spouse is indicated, entity manager updates the spouse's spouse and marital status column
         const validation = await this.validation(person)
 
         await this.connection.transaction(async manager => {
