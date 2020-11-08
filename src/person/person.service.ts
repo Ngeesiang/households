@@ -54,12 +54,12 @@ export class PersonService {
     // If spouse is indicated, entity manager updates the spouse's spouse and marital status column
         const validation = await this.validation(person)
 
-        await this.connection.transaction(async manager => {
-            const personORM = manager.create(Person, person)
-            await manager.save(personORM);
-            const personId = manager.getId(personORM)
+        await this.connection.transaction(async transactionalEntityManager => {
+            const personORM = transactionalEntityManager.create(Person, person)
+            await transactionalEntityManager.save(personORM);
+            const personId = transactionalEntityManager.getId(personORM)
             if (personORM.spouse) {
-                await manager.update(Person, person.spouse, {spouse: personId, marital_status: MaritalStatusType.Married})
+                await transactionalEntityManager.update(Person, person.spouse, {spouse: personId, marital_status: MaritalStatusType.Married})
                 }
             return personId
         })

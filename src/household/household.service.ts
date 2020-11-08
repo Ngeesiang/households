@@ -21,14 +21,14 @@ export class HouseholdService {
     async getAll(): Promise<Household[]> {
     // Get all existing households with their respective family members
         const manager = this.connection.manager
-        return await manager.find(Household)
+        return await manager.find(Household, { is_active: true })
     }
 
     async findOne(householdId: number): Promise<Household> {
     // Retrieve one household by household_id
         const manager = this.connection.manager
         try {
-            return await manager.findOneOrFail(Household, householdId)
+            return await manager.findOneOrFail(Household, { id: householdId, is_active: true })
         } catch(err) {
             throw new NotFoundException('Household unit does not exist')
         }
@@ -51,7 +51,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids)
+        return await manager.findByIds(Household, ids, {is_active: true})
     }
 
     async findHouseholdByIncome(totalHouseholdIncome: number) {
@@ -60,6 +60,7 @@ export class HouseholdService {
         return await manager.query(
             `
             SELECT HOUSEHOLD.ID, SUM(PERSON.ANNUAL_INCOME) AS HOUSEHOLD_INCOME FROM HOUSEHOLD
+            WHERE HOUSEHOLD.IS_ACTIVE = TRUE
             INNER JOIN PERSON ON HOUSEHOLD.ID = PERSON.HOUSEHOLD_UNIT
             GROUP BY HOUSEHOLD.ID
             HAVING SUM(PERSON.ANNUAL_INCOME) < ${totalHouseholdIncome}
@@ -75,7 +76,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids)
+        return await manager.findByIds(Household, ids, {is_active: true})
     }
 
     async findHouseholdByIncomeAndMaritalStatus(totalHouseholdIncome: number) {
@@ -124,7 +125,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids)
+        return await manager.findByIds(Household, ids, {is_active: true})
     }
 
     async findHouseholdByIncomeAndAge(totalHouseholdIncome: number, age: number, ageParam: string, minMax: string): Promise<any[]> {
@@ -169,7 +170,7 @@ export class HouseholdService {
         for(var variable in householdIds) {
             ids.push(householdIds[variable].id)
         }
-        return await manager.findByIds(Household, ids)
+        return await manager.findByIds(Household, ids, {is_active: true})
 
     }
 
@@ -219,7 +220,16 @@ export class HouseholdService {
 
     async delete(householdId: number) {
         const manager = this.connection.manager
-        return await manager.delete(Household, householdId)
+        await manager.transaction(async transactionalEntityManager => {
+            await transactionalEntityManager.createQueryBuilder()
+            .update(Person)
+            .where("household_unit = :householdId", { householdId: householdId })
+            .set({ 
+                household_unit: null
+            })
+            .execute();
+            await transactionalEntityManager.update(Household, householdId, { is_active: false });
+        });
     }
 
     async addFamilyMember(householdId: number, personId: number) {
