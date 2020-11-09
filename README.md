@@ -66,7 +66,7 @@ Get a by person_id
 #### POST()
 Create a person with household_unit_id defaulted to null
 
-#### DELETE
+#### DELETE()
 Delete a person from household unit, setting household_unit_id to null
 
 ### Household
@@ -86,5 +86,5 @@ Create a household with no family members
 #### POST(':/household_id)
 Add an existing person to a household unit given person_id and household_id
 
-#### DELETE
+#### DELETE()
 Delete a household instance and setting all family members' household_unit_id to null
