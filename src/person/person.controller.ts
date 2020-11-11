@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ForbiddenException, Res, HttpStatus, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ForbiddenException, Res, HttpStatus, Delete, Put } from '@nestjs/common';
 import { PersonService } from './person.service';
 import { Person } from 'src/entity/person.entity';
 import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
@@ -32,12 +32,12 @@ export class PersonController {
     }
 
     @ApiOperation({ summary: 'Remove a person from a household unit and setting household_unit_id to null' })
-    @Delete('/:person_id')
-    async delete(@Param('person_id') personId: number, @Res() res) {
-        const deletion = await this.personsService.delete(personId)
+    @Put()
+    async update(@Body() person: Person, @Res() res) {
+        const deletion = await this.personsService.update(person)
         return res.status(HttpStatus.OK).json({
           status: 200,
-          message: "Person has been deleted from the household.",
+          message: "Person has been removed from the household.",
         });
     }
 }

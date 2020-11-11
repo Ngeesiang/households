@@ -42,20 +42,24 @@ export class HouseholdController {
         @Query('age') age: number,
         @Query('age_param') ageParam: string,
         @Query('marital_status') maritalStatus: string): Promise<Household[]> {
-        if (ageParam == '-') {
-            age = 0
-            if (maritalStatus == 'Non-requirement') {
-                return await this.householdService.getHouseholdsByHouseholdIncome(totalHouseholdIncome)
-            } else {
-                return await this.householdService.getHouseholdsByHouseholdIncomeAndMaritalStatus(totalHouseholdIncome)
-            }
-        } else {
-            if (maritalStatus == 'Non-requirement') {
-                return await this.householdService.getHouseholdsByHouseholdIncomeAndAge(totalHouseholdIncome, age, ageParam)
-            }
-            return await this.householdService.getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(totalHouseholdIncome, age, ageParam)
+        if (age < 0 || totalHouseholdIncome < 0) {
+            throw new ForbiddenException("Please enter positive inputs.")
         }
-
+        else {
+            if (ageParam == '-') {
+                age = 0
+                if (maritalStatus == 'Non-requirement') {
+                    return await this.householdService.getHouseholdsByHouseholdIncome(totalHouseholdIncome)
+                } else {
+                    return await this.householdService.getHouseholdsByHouseholdIncomeAndMaritalStatus(totalHouseholdIncome)
+                }
+            } else {
+                if (maritalStatus == 'Non-requirement') {
+                    return await this.householdService.getHouseholdsByHouseholdIncomeAndAge(totalHouseholdIncome, age, ageParam)
+                }
+                return await this.householdService.getHouseholdsByHouseholdIncomeAndAgeAndMaritalStatus(totalHouseholdIncome, age, ageParam)
+            }
+        }
     }
 
     @ApiOperation({ summary: 'Get households by household_id' })

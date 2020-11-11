@@ -69,8 +69,9 @@ export class PersonService {
         }
     }
 
-    async delete(personId: number) {
-        const person = await this.findOne(personId)
+    async update(person: Person) {
+        const validate = await this.validation(person)
+        const findPerson = await this.findOne(person.id)
         const household = await this.householdService.findOne(person.household_unit_id)
         if (person.household_unit_id == null) {
             throw new ForbiddenException("Person is not a family member of a household unit")
@@ -84,8 +85,19 @@ export class PersonService {
                     .remove(person);
                 await manager.createQueryBuilder()
                     .update(Person)
-                    .where("household_unit_id = :id", { id: person.household_unit_id })
-                    .set({household_unit_id: null})
+                    .where("household_unit_id = :household_id", { household_id: person.household_unit_id })
+                    .andWhere("id = :person_id", {person_id: person.id})
+                    .set({
+                        id: person.id,
+                        name: person.name,
+                        gender: person.gender,
+                        marital_status: person.marital_status,
+                        spouse: person.spouse,
+                        occupation_type: person.occupation_type,
+                        annual_income: person.annual_income,
+                        date_of_birth: person.date_of_birth,
+                        household_unit_id: null
+                    })
                     .execute()
             })
         } catch (err) {

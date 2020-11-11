@@ -40,16 +40,22 @@ Create empty household -> create person with no household_unit -> add person to 
 
 ## Assumptions
 
-Household creation:
+Household creation
+-------------------
 Household is created with household_type but empty
 
-Person creation:
+Person creation
+-------------------
 Assume that when a spouse is indicated, the spouse must exist -> Adding person with spouse will update the spouse record to married and spouseId to id of added person
 
-Person deletion:
-Person is removed from the household and foreignkey household_unit is set to null. Person still exists in the database and can be added to another household
+Person update
+-------------------
+Person is removed from the household and foreignkey household_unit is set to null. Person still exists in the database and can be added to another household. Person record cannot be deleted for now.
 
-Househld deletion:
+Adding a person to a household when the person already has a household unit will update his household unit to the new household unit
+
+Household deletion
+-------------------
 Household record is deleted from the database. Every person in the deleted household still exist in the database with foreign key household_unit set to null.
 
 
